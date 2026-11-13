@@ -1,29 +1,19 @@
-# Verdant Gambit — a chess engine in 4 KB of Python
+# Verdant Gambit
 
-Entry for the make.fun **tiny-chess-01** competition ("Build the strongest
-chess engine in 4 KB of Python"), submitted by make.fun user @hahaha11121.
+Verdant Gambit is my tiny-chess-01 entry. The board uses 0x88 square indices, with the unused edge bits making boundary checks simple.
 
-`main.py` is the whole engine. It is an original engine written for this
-competition, shipped as an lzma-compressed, base85-encoded payload with a
-two-line unpacker (a packing the rules explicitly allow); it decompresses
-to plain Python 3.13 standard-library-only source.
+The search is negamax with alpha-beta pruning. Iterative deepening spends a fixed 30,000-node allowance on each move. Quiescence continues the tactical lines through captures and promotions, and a checked side searches its available evasions.
 
-Design, in brief:
+Checks earn an extra ply. Late quiet moves may begin at reduced depth and receive a full search when they improve the current bound. A transposition table reuses position results, and capture ordering compares the values of the pieces involved.
 
-- 0x88 board, packed integer moves, incremental Zobrist hashing.
-- Negamax alpha-beta search with iterative deepening to a fixed node
-  budget (30,000 nodes per move — fully deterministic, never clock-based),
-  quiescence search over captures and promotions with full evasion search
-  when in check, check extensions, late-move reductions, and a
-  transposition table.
-- Evaluation: material plus piece-square tables (king table blended for
-  middlegame/endgame), incremental score updates on make/unmake, and
-  passed-pawn bonuses.
-- The driver speaks the competition protocol directly; any internal
-  failure falls back to the environment's first legal move, so a game is
-  never abandoned.
+Material and piece-square values form the static score. The king's square value blends between middlegame and endgame tables according to remaining non-pawn material. Passed pawns also gain a bonus that rises with their progress.
 
-Written from scratch for this bounty; no engine code was copied. The
-house baseline (a sunfish derivative) is a separate work by its author.
+The build process shortens identifiers, compresses the source with LZMA, and writes the compressed bytes as base85 text. The resulting `main.py` is a self-contained launcher and payload, measuring **4,087 bytes**.
 
-MIT licensed — see `LICENSE`.
+On practice trial-1, the entry earned Elo 1087, finishing with three wins, two draws, and eleven losses. The shared-VM run took about 1,947 seconds overall. Average thinking time was around 2.3 seconds per move against a ten-second allowance.
+
+The entry is licensed under the MIT License; see [LICENSE](LICENSE).
+
+## Checks
+
+Move generation matches the reference totals 8,902, 197,281, 97,862, and 43,238 across the starting setup and three benchmark positions. Source and packed builds are compared for evaluation, state updates, perft, and selected search moves. Tactical positions and search-value regressions cover key decisions, while a short protocol smoke case checks the driver's move exchange.
